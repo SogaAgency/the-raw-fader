@@ -1,153 +1,66 @@
-<!DOCTYPE html>
-<html lang="sv">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE RAW FADER | Scan. Scroll. Sound.</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@900&display=swap" rel="stylesheet">
-    <style>
-        :root { --blue: #007bff; --red: #ff0000; --dark: #050505; --grid-item-bg: #111; }
-        body { background: var(--dark); color: white; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
-        
-        /* Header */
-        header { margin-bottom: 40px; }
-        h1 { font-family: 'Orbitron', sans-serif; color: var(--blue); letter-spacing: 8px; text-shadow: 0 0 15px var(--blue); margin: 0; }
-        .tagline { font-size: 0.7rem; letter-spacing: 0.4em; color: #555; margin: 10px 0; }
+<style>
+    /* ... (Behåll din tidigare blå-röda bas-styling) ... */
+    #track-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+        width: 100%;
+        max-width: 1400px;
+        margin-top: 50px;
+    }
 
-        /* VU-Meter */
-        .vu-container { display: flex; gap: 5px; height: 60px; align-items: flex-end; margin-bottom: 30px; opacity: 0; transition: opacity 0.3s; }
-        .bar { width: 10px; background: var(--blue); opacity: 0.2; transition: 0.1s; }
-        .bar.peak { background: var(--red); }
-        .active .bar { animation: pulse 0.4s infinite alternate; opacity: 1; box-shadow: 0 0 10px var(--blue); }
-        .active .bar.peak { box-shadow: 0 0 10px var(--red); }
-        @keyframes pulse { from { height: 10%; } to { height: var(--h); } }
-        .vu-container.active { opacity: 1; }
+    .track-card {
+        background: #0f0f0f;
+        border-left: 2px solid #222;
+        padding: 15px;
+        text-align: left;
+        transition: 0.3s;
+        opacity: 0; /* För animationen */
+        transform: translateY(15px);
+        animation: slideUp 0.4s forwards;
+    }
 
-        /* Knappen */
-        button {
-            background: transparent; border: 2px solid var(--blue); color: var(--blue);
-            padding: 15px 30px; font-family: 'Orbitron'; cursor: pointer; transition: 0.3s;
-            text-transform: uppercase; letter-spacing: 2px;
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+    .track-card:hover {
+        background: #151515;
+        border-left-color: var(--red);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.1);
+    }
+
+    .track-title { color: var(--blue); font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { color: #888; font-size: 0.8rem; }
+    a { text-decoration: none; color: inherit; }
+</style>
+
+<script>
+    async function scanFrequency() {
+        const grid = document.getElementById('track-grid');
+        const vu = document.getElementById('vu');
+        grid.innerHTML = '';
+        vu.classList.add('active');
+
+        try {
+            const res = await fetch('/api/get-tracks');
+            const tracks = await res.json();
+            
+            vu.classList.remove('active');
+
+            tracks.forEach((track, index) => {
+                setTimeout(() => {
+                    const card = document.createElement('div');
+                    card.className = 'track-card';
+                    card.innerHTML = `
+                        <a href="${track.link}" target="_blank">
+                            <div class="track-title">${track.name}</div>
+                            <div class="track-artist">${track.artist}</div>
+                        </a>`;
+                    grid.appendChild(card);
+                }, index * 20); // Skapar "vattenfallet"
+            });
+        } catch (e) {
+            vu.classList.remove('active');
+            alert('Signal lost. Try again.');
         }
-        button:hover { background: var(--blue); color: var(--dark); box-shadow: 0 0 20px var(--blue); border-color: var(--red); }
-
-        /* RUTNÄTET (The Raw Grid) */
-        #track-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Responsivt rutnät */
-            gap: 15px;
-            width: 100%;
-            max-width: 1200px;
-            margin-top: 50px;
-        }
-
-        /* Varje spår i rutnätet */
-        .track-card {
-            background: var(--grid-item-bg);
-            border-left: 2px solid #333; /* Inaktiv state */
-            padding: 15px;
-            text-align: left;
-            transition: all 0.3s;
-            opacity: 0;
-            transform: translateY(10px);
-            animation: fadeInGrid 0.5s forwards;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* Hover-effekt på rutnätet */
-        .track-card:hover {
-            border-left-color: var(--red);
-            background: #181818;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.2);
-        }
-
-        /* Spotify/Apple loggor (minimalistiska) */
-        .source-icon { position: absolute; top: 10px; right: 10px; font-size: 0.7rem; opacity: 0.3; color: white; }
-
-        /* Animering för rutnätet */
-        @keyframes fadeInGrid { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Text i rutnätet */
-        .track-title { font-size: 0.9rem; color: var(--blue); font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 10px var(--blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .track-artist { font-size: 0.8rem; color: white; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        a { text-decoration: none; color: inherit; display: block; height: 100%; }
-        
-        /* Status-text */
-        #status { margin-top: 30px; color: #444; font-size: 0.9rem; }
-    </style>
-</head>
-<body>
-
-    <header>
-        <h1>THE RAW FADER</h1>
-        <div class="tagline">SCAN. SCROLL. SOUND.</div>
-    </header>
-
-    <div class="vu-container" id="vu">
-        <div class="bar" style="--h: 60%"></div>
-        <div class="bar" style="--h: 80%"></div>
-        <div class="bar" style="--h: 40%"></div>
-        <div class="bar" style="--h: 70%"></div>
-        <div class="bar peak" style="--h: 95%"></div>
-        <div class="bar peak" style="--h: 90%"></div>
-    </div>
-
-    <button onclick="scanFrequency()">[ RE-SCAN FREQUENCY ]</button>
-
-    <div id="status"></div>
-
-    <div id="track-grid"></div>
-
-    <script>
-        async function scanFrequency() {
-            const vu = document.getElementById('vu');
-            const grid = document.getElementById('track-grid');
-            const status = document.getElementById('status');
-
-            // 1. Nollställ och Aktivera
-            grid.innerHTML = ''; 
-            vu.classList.add('active');
-            status.innerHTML = 'Bypassing algorithms... Compiling raw indie pool...';
-
-            try {
-                // 2. Anropa API (Spotify + Apple Kombinerat)
-                const res = await fetch('/api/get-tracks');
-                const tracks = await res.json();
-                
-                // 3. Avsluta laddning
-                vu.classList.remove('active');
-                status.innerHTML = '';
-
-                // 4. Visa 100 hits i rutnätet med fördröjning
-                tracks.forEach((track, index) => {
-                    setTimeout(() => {
-                        const card = document.createElement('div');
-                        card.className = 'track-card';
-                        
-                        // Sätt logga baserat på källa
-                        const icon = track.source === 'spotify' 
-                            ? '<span class="source-icon">SP</span>' 
-                            : '<span class="source-icon">AP</span>';
-
-                        card.innerHTML = `
-                            <a href="${track.link}" target="_blank">
-                                ${icon}
-                                <div class="track-title">${track.name || track.title}</div>
-                                <div class="track-artist">${track.artist}</div>
-                            </a>`;
-                        grid.appendChild(card);
-                    }, index * 20); // Skapar en snygg "vattenfalls-effekt"
-                });
-
-            } catch (e) {
-                vu.classList.remove('active');
-                status.innerHTML = 'SIGNAL LOST. TRY AGAIN.';
-                console.error(e);
-            }
-        }
-    </script>
-</body>
-</html>
+    }
+</script>
