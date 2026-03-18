@@ -1,66 +1,119 @@
-<style>
-    /* ... (Behåll din tidigare blå-röda bas-styling) ... */
-    #track-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 15px;
-        width: 100%;
-        max-width: 1400px;
-        margin-top: 50px;
-    }
-
-    .track-card {
-        background: #0f0f0f;
-        border-left: 2px solid #222;
-        padding: 15px;
-        text-align: left;
-        transition: 0.3s;
-        opacity: 0; /* För animationen */
-        transform: translateY(15px);
-        animation: slideUp 0.4s forwards;
-    }
-
-    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
-
-    .track-card:hover {
-        background: #151515;
-        border-left-color: var(--red);
-        box-shadow: 0 0 15px rgba(255, 0, 0, 0.1);
-    }
-
-    .track-title { color: var(--blue); font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .track-artist { color: #888; font-size: 0.8rem; }
-    a { text-decoration: none; color: inherit; }
-</style>
-
-<script>
-    async function scanFrequency() {
-        const grid = document.getElementById('track-grid');
-        const vu = document.getElementById('vu');
-        grid.innerHTML = '';
-        vu.classList.add('active');
-
-        try {
-            const res = await fetch('/api/get-tracks');
-            const tracks = await res.json();
-            
-            vu.classList.remove('active');
-
-            tracks.forEach((track, index) => {
-                setTimeout(() => {
-                    const card = document.createElement('div');
-                    card.className = 'track-card';
-                    card.innerHTML = `
-                        <a href="${track.link}" target="_blank">
-                            <div class="track-title">${track.name}</div>
-                            <div class="track-artist">${track.artist}</div>
-                        </a>`;
-                    grid.appendChild(card);
-                }, index * 20); // Skapar "vattenfallet"
-            });
-        } catch (e) {
-            vu.classList.remove('active');
-            alert('Signal lost. Try again.');
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE RAW FADER | Scan. Scroll. Sound.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@900&display=swap" rel="stylesheet">
+    <style>
+        :root { --blue: #007bff; --red: #ff0000; --dark: #050505; }
+        body { 
+            background: var(--dark); 
+            color: white; 
+            font-family: 'Inter', sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 40px 20px; 
+            text-align: center; 
         }
-    }
-</script>
+        
+        h1 { font-family: 'Orbitron', sans-serif; color: var(--blue); letter-spacing: 8px; text-shadow: 0 0 15px var(--blue); margin: 0; }
+        .tagline { font-size: 0.7rem; letter-spacing: 0.4em; color: #555; margin: 10px 0 40px 0; }
+
+        .vu-container { display: flex; gap: 5px; height: 50px; align-items: flex-end; margin-bottom: 30px; opacity: 0.3; }
+        .bar { width: 8px; background: var(--blue); height: 20%; transition: 0.1s; }
+        .bar.peak { background: var(--red); }
+        .active .bar { animation: pulse 0.4s infinite alternate; opacity: 1; }
+        @keyframes pulse { from { height: 10%; } to { height: var(--h); } }
+
+        button {
+            background: transparent; border: 2px solid var(--blue); color: var(--blue);
+            padding: 15px 30px; font-family: 'Orbitron'; cursor: pointer; transition: 0.3s;
+            margin-bottom: 40px;
+        }
+        button:hover { background: var(--blue); color: var(--dark); box-shadow: 0 0 20px var(--blue); border-color: var(--red); }
+
+        /* RUTNÄTET */
+        #track-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .track-card {
+            background: #111;
+            border-left: 3px solid #222;
+            padding: 20px;
+            text-align: left;
+            transition: 0.3s;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .track-card:hover { border-left-color: var(--red); background: #181818; transform: translateY(-3px); }
+        .track-title { color: var(--blue); font-weight: bold; font-size: 1rem; margin-bottom: 5px; }
+        .track-artist { color: #888; font-size: 0.8rem; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        a { text-decoration: none; color: inherit; }
+    </style>
+</head>
+<body>
+
+    <h1>THE RAW FADER</h1>
+    <div class="tagline">SCAN. SCROLL. SOUND.</div>
+
+    <div class="vu-container" id="vu">
+        <div class="bar" style="--h: 70%"></div>
+        <div class="bar" style="--h: 90%"></div>
+        <div class="bar" style="--h: 50%"></div>
+        <div class="bar peak" style="--h: 95%"></div>
+    </div>
+
+    <button onclick="scanFrequency()">[ RE-SCAN FREQUENCY ]</button>
+
+    <div id="track-grid"></div>
+
+    <script>
+        async function scanFrequency() {
+            const grid = document.getElementById('track-grid');
+            const vu = document.getElementById('vu');
+            grid.innerHTML = '<p style="color: #444;">Scanning frequencies...</p>';
+            vu.classList.add('active');
+
+            try {
+                const res = await fetch('/api/get-tracks');
+                const tracks = await res.json();
+                
+                vu.classList.remove('active');
+                grid.innerHTML = '';
+
+                if (!tracks || tracks.length === 0) {
+                    grid.innerHTML = '<p>No indie signals found. Try again.</p>';
+                    return;
+                }
+
+                tracks.forEach((track, index) => {
+                    setTimeout(() => {
+                        const card = document.createElement('div');
+                        card.className = 'track-card';
+                        card.innerHTML = `
+                            <a href="${track.link}" target="_blank">
+                                <div class="track-title">${track.name}</div>
+                                <div class="track-artist">${track.artist}</div>
+                            </a>`;
+                        grid.appendChild(card);
+                    }, index * 30);
+                });
+            } catch (e) {
+                vu.classList.remove('active');
+                grid.innerHTML = '<p>Connection lost. Check API keys.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
