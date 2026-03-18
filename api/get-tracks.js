@@ -2,46 +2,45 @@ export default async function handler(req, res) {
   const client_id = process.env.SPOTIFY_CLIENT_ID;
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
+  // 1. Kolla om variablerna ens finns
   if (!client_id || !client_secret) {
-    return res.status(500).json({ error: 'Environment variables missing' });
+    return res.status(500).json({ error: "MISSING_KEYS", message: "Environment variables are not set in Vercel." });
   }
 
   try {
-    // 1. Hämta Token med inbyggd fetch (säkrare i Vercel-miljö)
-    const authOptions = {
+    // 2. Autentisering
+    const authString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
+    const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + Buffer.from(client_id + ':' + client_secret).toString('base64'),
+        'Authorization': `Basic ${authString}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: 'grant_type=client_credentials'
-    };
+    });
 
-    const tokenRes = await fetch('https://accounts.spotify.com/api/token', authOptions);
     const tokenData = await tokenRes.json();
-    
-    if (!tokenData.access_token) {
-      console.error("Spotify Auth Failed:", tokenData);
-      return res.status(500).json({ error: 'Auth failed' });
+
+    if (!tokenRes.ok) {
+      return res.status(tokenRes.status).json({ error: "AUTH_FAILED", spotify_msg: tokenData });
     }
 
     const token = tokenData.access_token;
     const randomChar = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
-    const offset = Math.floor(Math.random() * 200);
+    const offset = Math.floor(Math.random() * 100);
 
-    // 2. Sök låtar (Direkt mot Spotifys officiella API)
-    const searchUrl = `https://api.spotify.com/v1/search?q=${randomChar}&type=track&limit=50&offset=${offset}`;
-    const searchRes = await fetch(searchUrl, {
+    // 3. Sökning
+    const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${randomChar}&type=track&limit=50&offset=${offset}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+
     const searchData = await searchRes.json();
 
-    if (!searchData.tracks) {
-      console.error("Spotify Search Failed:", searchData);
-      return res.status(500).json({ error: 'Search failed' });
+    if (!searchRes.ok) {
+      return res.status(searchRes.status).json({ error: "SEARCH_FAILED", spotify_msg: searchData });
     }
 
-    // 3. Filtrera och returnera
+    // 4. Filtrera (Popularitet < 35)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 35)
       .map(t => ({
@@ -52,8 +51,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json(tracks);
 
-  } catch (error) {
-    console.error('SERVER ERROR:', error.message);
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    return res.status(500).json({ error: "SERVER_CRASH", message: err.message });
   }
 }
