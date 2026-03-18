@@ -2,13 +2,13 @@ export default async function handler(req, res) {
   const client_id = process.env.SPOTIFY_CLIENT_ID;
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
-  // 1. Kolla om variablerna ens finns
+  // 1. Check if keys exist
   if (!client_id || !client_secret) {
-    return res.status(500).json({ error: "MISSING_KEYS", message: "Environment variables are not set in Vercel." });
+    return res.status(500).json({ error: "MISSING_KEYS", message: "Environment variables not found in Vercel." });
   }
 
   try {
-    // 2. Autentisering
+    // 2. Get Access Token
     const authString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -22,25 +22,24 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
 
     if (!tokenRes.ok) {
-      return res.status(tokenRes.status).json({ error: "AUTH_FAILED", spotify_msg: tokenData });
+      return res.status(tokenRes.status).json({ error: "AUTH_FAILED", details: tokenData });
     }
 
-    const token = tokenData.access_token;
+    // 3. Search Tracks
     const randomChar = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
     const offset = Math.floor(Math.random() * 100);
-
-    // 3. Sökning
+    
     const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${randomChar}&type=track&limit=50&offset=${offset}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
     });
 
     const searchData = await searchRes.json();
 
     if (!searchRes.ok) {
-      return res.status(searchRes.status).json({ error: "SEARCH_FAILED", spotify_msg: searchData });
+      return res.status(searchRes.status).json({ error: "SEARCH_FAILED", details: searchData });
     }
 
-    // 4. Filtrera (Popularitet < 35)
+    // 4. Filter for Indie (Popularity < 35)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 35)
       .map(t => ({
