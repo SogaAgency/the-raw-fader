@@ -64,4 +64,176 @@
         .bar {
             width: 12px;
             background: var(--electric-blue);
-            opacity
+            opacity: 0.3;
+            transition: height 0.1s ease-out, background 0.1s ease-out;
+        }
+
+        /* Animering för att simulera ljud (startas vid laddning) */
+        @keyframes active-pulse {
+            0% { height: 10%; }
+            50% { height: var(--height); }
+            100% { height: 15%; }
+        }
+
+        /* Röd Peak-sektion (de sista staplarna) */
+        .bar:nth-last-child(-n+3) {
+            background: var(--peak-red);
+        }
+
+        /* Klass för när mätaren är aktiv */
+        .vu-meter.active .bar {
+            opacity: 1;
+            box-shadow: var(--glow-blue);
+            animation: active-pulse 0.4s infinite alternate;
+        }
+
+        .vu-meter.active .bar:nth-last-child(-n+3) {
+            box-shadow: var(--glow-red);
+        }
+
+        /* RE-SCAN Knappen */
+        button {
+            background: transparent;
+            border: 2px solid var(--electric-blue);
+            color: var(--electric-blue);
+            padding: 1.2rem 2.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--electric-blue);
+            color: var(--bg-dark);
+            box-shadow: var(--glow-blue);
+        }
+
+        /* Röd Peak-glöd vid hovring */
+        button:hover::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 15px var(--peak-red);
+            opacity: 0.5;
+        }
+
+        /* Resultatvisning */
+        #result-container {
+            margin-top: 3rem;
+            min-height: 100px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .track-card {
+            border: 1px solid var(--text-muted);
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .track-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--electric-blue);
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: var(--glow-blue);
+        }
+
+        .track-artist {
+            color: var(--text-main);
+            margin-bottom: 1rem;
+        }
+
+        .listen-link {
+            display: inline-block;
+            color: var(--peak-red);
+            text-decoration: none;
+            font-weight: 700;
+            border-bottom: 1px solid var(--peak-red);
+            padding-bottom: 2px;
+            transition: 0.3s;
+        }
+
+        .listen-link:hover {
+            text-shadow: var(--glow-red);
+            border-color: transparent;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>THE RAW FADER</h1>
+    <div class="tagline">SCAN. SCROLL. SOUND.</div>
+
+    <div class="vu-meter" id="vuMeter">
+        <div class="bar" style="--height: 60%"></div>
+        <div class="bar" style="--height: 80%"></div>
+        <div class="bar" style="--height: 50%"></div>
+        <div class="bar" style="--height: 90%"></div>
+        <div class="bar" style="--height: 70%"></div>
+        <div class="bar" style="--height: 85%"></div>
+        <div class="bar" style="--height: 60%"></div>
+        <div class="bar" style="--height: 95%"></div> <div class="bar" style="--height: 98%"></div> <div class="bar" style="--height: 92%"></div> </div>
+
+    <button onclick="rescanFrequency()">[ RE-SCAN FREQUENCY ]</button>
+
+    <div id="result-container">
+        </div>
+
+    <script>
+        const vuMeter = document.getElementById('vuMeter');
+        const resultContainer = document.getElementById('result-container');
+
+        async function rescanFrequency() {
+            // 1. Aktivera VU-mätaren (Blå/Röd puls)
+            vuMeter.classList.add('active');
+            
+            // 2. Visa laddningstext
+            resultContainer.innerHTML = '<div class="status-text">Bypassing mainstream filters... Rerouting via independent circuits...</div>';
+            
+            try {
+                // 3. Anropa ditt Serverless API
+                const response = await fetch('/api/get-tracks');
+                const track = await response.json();
+                
+                // 4. Simulera laddningstid för visuell effekt (valfritt, men förstärker "scanning")
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // 5. Stäng av VU-mätaren och visa resultatet
+                vuMeter.classList.remove('active');
+                
+                if (track && track.name) {
+                    resultContainer.innerHTML = `
+                        <div class="track-card">
+                            <div class="track-title">${track.name}</div>
+                            <div class="track-artist">${track.artists[0].name}</div>
+                            <a href="${track.external_urls.spotify}" target="_blank" class="listen-link">LYSSNA PÅ SPOTIFY →</a>
+                        </div>
+                    `;
+                } else {
+                    resultContainer.innerHTML = '<div class="status-text">SIGNAL LOST. No raw frequency detected. Try again.</div>';
+                }
+
+            } catch (err) {
+                // Vid fel, stäng av mätaren och visa felmeddelande
+                vuMeter.classList.remove('active');
+                resultContainer.innerHTML = '<div class="status-text">ERROR: Anti-algorithm shield detected. Re-scanning failed.</div>';
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
