@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE RAW FADER | Scan. Scroll. Sound.</title>
+    <link rel="preconnect" href="http://googleusercontent.com/fonts.googleapis.com">
+    <link rel="preconnect" href="http://googleusercontent.com/fonts.gstatic.com" crossorigin>
+    <link href="http://googleusercontent.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050505;
+            --electric-blue: #007bff;
+            --peak-red: #ff0000;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --glow-blue: 0 0 15px rgba(0, 123, 255, 0.7);
+            --glow-red: 0 0 15px rgba(255, 0, 0, 0.7);
+        }
 
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        /* Rubrik och Tagline */
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 0.2em;
+            color: var(--electric-blue);
+            text-shadow: var(--glow-blue);
+        }
+
+        .tagline {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+        }
+
+        /* VU-mätare - Blå med Röd Peak */
+        .vu-meter {
+            display: flex;
+            gap: 4px;
+            height: 120px;
+            align-items: flex-end;
+            margin-bottom: 3rem;
+        }
+
+        .bar {
+            width: 12px;
+            background: var(--electric-blue);
+            opacity
