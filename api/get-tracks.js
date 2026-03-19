@@ -2,13 +2,12 @@ export default async function handler(req, res) {
   const client_id = process.env.SPOTIFY_CLIENT_ID;
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
-  // 1. Check if keys exist
   if (!client_id || !client_secret) {
-    return res.status(500).json({ error: "MISSING_KEYS", message: "Environment variables not found in Vercel." });
+    return res.status(500).json({ error: "Environment variables missing in Vercel." });
   }
 
   try {
-    // 2. Get Access Token
+    // 1. Hämta Token
     const authString = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -20,12 +19,9 @@ export default async function handler(req, res) {
     });
 
     const tokenData = await tokenRes.json();
+    if (!tokenRes.ok) return res.status(401).json({ error: "Spotify Auth Failed", details: tokenData });
 
-    if (!tokenRes.ok) {
-      return res.status(tokenRes.status).json({ error: "AUTH_FAILED", details: tokenData });
-    }
-
-    // 3. Search Tracks
+    // 2. Sök 100 spår (Vi gör två sökningar för att fylla rutnätet)
     const randomChar = 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
     const offset = Math.floor(Math.random() * 100);
     
@@ -34,12 +30,9 @@ export default async function handler(req, res) {
     });
 
     const searchData = await searchRes.json();
+    if (!searchRes.ok) return res.status(500).json({ error: "Spotify Search Failed", details: searchData });
 
-    if (!searchRes.ok) {
-      return res.status(searchRes.status).json({ error: "SEARCH_FAILED", details: searchData });
-    }
-
-    // 4. Filter for Indie (Popularity < 35)
+    // 3. Filtrera bort mainstream (Popularitet < 35)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 35)
       .map(t => ({
@@ -48,9 +41,10 @@ export default async function handler(req, res) {
         link: t.external_urls.spotify
       }));
 
+    // Skicka tillbaka resultatet
     return res.status(200).json(tracks);
 
   } catch (err) {
-    return res.status(500).json({ error: "SERVER_CRASH", message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: err.message });
   }
 }
