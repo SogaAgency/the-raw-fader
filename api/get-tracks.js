@@ -17,27 +17,23 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     const token = tokenData.access_token;
 
-    // 2. Sökning - Fixad URL-struktur
-    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-    const randomChar = alphabet[Math.floor(Math.random() * alphabet.length)];
-    const offset = Math.floor(Math.random() * 100);
-
-    // Här använder vi en renare sträng för att undvika "Invalid limit"
-    const apiUrl = `https://api.spotify.com/v1/search?q=${randomChar}&type=track&limit=50&offset=${offset}`;
+    // 2. Sökning - Hårdkodad URL för att undvika "Invalid limit"
+    // Vi söker efter 'a' med offset 10 för att garantera svar
+    const searchUrl = 'https://api.spotify.com/v1/search?q=a&type=track&limit=50&offset=10';
     
-    const searchRes = await fetch(apiUrl, {
+    const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
     const searchData = await searchRes.json();
 
     if (!searchRes.ok) {
-      return res.status(searchRes.status).json({ error: "Spotify Search Failed", details: searchData });
+      return res.status(searchRes.status).json({ error: "SEARCH_FAILED", details: searchData });
     }
 
-    // 3. Filtrera (Indie-fokus: Popularitet under 35)
+    // 3. Filtrera (Popularitet under 40 för att få tillräckligt med träffar)
     const tracks = searchData.tracks.items
-      .filter(t => t.popularity < 35)
+      .filter(t => t.popularity < 40)
       .map(t => ({
         name: t.name,
         artist: t.artists[0].name,
