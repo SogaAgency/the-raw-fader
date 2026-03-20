@@ -17,10 +17,9 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED" });
 
-    // 2. Sökning - Vi använder den EXAKTA ordning som Spotify föredrar
-    // q -> type -> limit -> offset
-    const query = encodeURIComponent('genre:indie');
-    const searchUrl = `https://api.spotify.com/v1/search?q=$9`;
+    // 2. Sökning - Vi använder en HELT ren sökning utan specialtecken som : eller %
+    // Vi söker bara på ordet 'indie' för att garantera att URL:en blir 100% korrekt
+    const searchUrl = 'https://api.spotify.com/v1/...0';
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
@@ -32,11 +31,11 @@ export default async function handler(req, res) {
       return res.status(searchRes.status).json({ 
         error: "SEARCH_FAILED", 
         spotify_msg: searchData.error?.message,
-        final_url: searchUrl 
+        url_used: searchUrl 
       });
     }
 
-    // 3. Filtrera (Popularitet under 40)
+    // 3. Filtrera (Popularitet under 40 för att hitta oberoende musik)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 40)
       .map(t => ({
