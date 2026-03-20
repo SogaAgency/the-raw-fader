@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
   try {
-    // 1. Hämta Access Token (Direkt från Spotify Accounts)
+    // 1. Hämta Access Token (Standard Auth)
     const authString = Buffer.from(client_id + ':' + client_secret).toString('base64');
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -15,11 +15,16 @@ export default async function handler(req, res) {
     });
 
     const tokenData = await tokenRes.json();
-    if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED", details: tokenData });
+    if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED" });
 
-    // 2. Sökning - Direkt mot Spotifys officiella API
-    // Vi använder en helt ren URL utan konstiga tecken för att garantera signal
-    const searchUrl = 'https://api.spotify.com/v1/search?q=genre%3Aindie&type=track&limit=50';
+    // 2. Sökning - Vi använder URLSearchParams för att tvinga fram rätt format
+    const params = new URLSearchParams();
+    params.append('q', 'genre:indie');
+    params.append('type', 'track');
+    params.append('limit', '50');
+    params.append('offset', '0');
+
+    const searchUrl = 'https://api.spotify.com/v1/...1?' + params.toString();
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
@@ -31,11 +36,11 @@ export default async function handler(req, res) {
       return res.status(searchRes.status).json({ 
         error: "SEARCH_FAILED", 
         spotify_msg: searchData.error?.message,
-        url: searchUrl 
+        final_url: searchUrl 
       });
     }
 
-    // 3. Filtrera (Popularitet under 40 för den rätta "Raw"-känslan)
+    // 3. Filtrera (Popularitet under 40)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 40)
       .map(t => ({
