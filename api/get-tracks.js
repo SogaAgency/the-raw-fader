@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     // 2. Sökning - HELT STATISK URL (Inga variabler, inga backticks)
     // Vi söker efter bokstaven 'a' i genren 'indie' för att garantera 50 träffar
-    const searchUrl = 'https://api.spotify.com/v1/search?q=genre:indie%20a&type=track&limit=50&offset=10';
+    const searchUrl = 'https://api.spotify.com/v1/search?q=genre:indie&type=track&limit=50';
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + token }
