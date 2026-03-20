@@ -17,11 +17,14 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED" });
 
-    // 2. Sökning - Vi använder en HELT statisk sträng för att tvinga bort "Invalid limit"
-    // Vi skippar variabler helt här för att se att signalen går igenom
-    const searchUrl = 'https://api.spotify.com/v1/search?q=genre%3Aindie&type=track&limit=50';
-    
-    const searchRes = await fetch(searchUrl, {
+    // 2. Sökning - Vi använder URL-objektet för att GARANTERA korrekt format
+    const spotifyApiUrl = new URL('https://api.spotify.com/v1/search?q=$7');
+    spotifyApiUrl.searchParams.append('q', 'genre:indie');
+    spotifyApiUrl.searchParams.append('type', 'track');
+    spotifyApiUrl.searchParams.append('limit', '50');
+    spotifyApiUrl.searchParams.append('offset', Math.floor(Math.random() * 50).toString());
+
+    const searchRes = await fetch(spotifyApiUrl.toString(), {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
     });
 
@@ -29,9 +32,9 @@ export default async function handler(req, res) {
 
     if (!searchRes.ok) {
       return res.status(searchRes.status).json({ 
-        error: "SEARCH_FAILED_STILL", 
-        spotify_msg: searchData.error?.message || "Format error",
-        debug_url: searchUrl // Detta visar oss exakt vad vi skickade
+        error: "SEARCH_FAILED", 
+        spotify_msg: searchData.error?.message,
+        tried_url: spotifyApiUrl.toString() // För att vi ska se att ? finns där nu
       });
     }
 
