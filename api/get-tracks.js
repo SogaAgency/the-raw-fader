@@ -17,11 +17,14 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED" });
 
-    // 2. Sökning - VI ANVÄNDER EN HELT STATISK STRÄNG
-    // Inga variabler, inga params-objekt, bara ren text.
-    const searchUrl = 'https://api.spotify.com/v1/search?q=genre%3Aindie&type=track&limit=50&offset=0';
-    
-    const searchRes = await fetch(searchUrl, {
+    // 2. Sökning - VI ANVÄNDER OBJEKT-METODEN (Den säkraste som finns)
+    const searchUrl = new URL('https://api.spotify.com/v1/search');
+    searchUrl.searchParams.set('q', 'genre:indie');
+    searchUrl.searchParams.set('type', 'track');
+    searchUrl.searchParams.set('limit', '50');
+    searchUrl.searchParams.set('offset', '0');
+
+    const searchRes = await fetch(searchUrl.toString(), {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
     });
 
@@ -31,7 +34,7 @@ export default async function handler(req, res) {
       return res.status(searchRes.status).json({ 
         error: "SEARCH_FAILED", 
         spotify_msg: searchData.error?.message,
-        url_debug: searchUrl 
+        url_attempted: searchUrl.toString() 
       });
     }
 
