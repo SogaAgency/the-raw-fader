@@ -18,7 +18,6 @@ export default async function handler(req, res) {
     if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED", details: tokenData });
 
     // 2. Bygg sök-URL med URLSearchParams (Säkraste metoden)
-    // Detta tvingar fram korrekt formatering av limit och q
     const params = new URLSearchParams({
       q: 'genre:indie',
       type: 'track',
@@ -26,7 +25,7 @@ export default async function handler(req, res) {
       offset: Math.floor(Math.random() * 50).toString()
     });
 
-    const searchUrl = 'https://api.spotify.com/v1/search?q=$5' + params.toString();
+    const searchUrl = 'https://api.spotify.com/v1/search?' + params.toString();
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
