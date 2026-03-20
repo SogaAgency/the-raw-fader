@@ -3,7 +3,7 @@ export default async function handler(req, res) {
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
   try {
-    // 1. Hämta Access Token (Standard Auth)
+    // 1. Logga in hos Spotify (Official Auth URL)
     const authString = Buffer.from(client_id + ':' + client_secret).toString('base64');
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -15,16 +15,18 @@ export default async function handler(req, res) {
     });
 
     const tokenData = await tokenRes.json();
-    if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED" });
+    if (!tokenRes.ok) return res.status(401).json({ error: "AUTH_FAILED", details: tokenData });
 
-    // 2. Sökning - Vi använder URLSearchParams för att tvinga fram rätt format
-    const params = new URLSearchParams();
-    params.append('q', 'genre:indie');
-    params.append('type', 'track');
-    params.append('limit', '50');
-    params.append('offset', '0');
+    // 2. Sökning (Official Search URL)
+    // Vi använder URL-byggaren för att garantera att limit=50 blir rätt formaterat
+    const params = new URLSearchParams({
+      q: 'genre:indie',
+      type: 'track',
+      limit: '50',
+      offset: Math.floor(Math.random() * 50).toString()
+    });
 
-    const searchUrl = 'https://api.spotify.com/v1/...1?' + params.toString();
+    const searchUrl = `https://api.spotify.com/v1/search?${params.toString()}`;
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
@@ -36,11 +38,11 @@ export default async function handler(req, res) {
       return res.status(searchRes.status).json({ 
         error: "SEARCH_FAILED", 
         spotify_msg: searchData.error?.message,
-        final_url: searchUrl 
+        tried_url: searchUrl 
       });
     }
 
-    // 3. Filtrera (Popularitet under 40)
+    // 3. Filtrera (Popularitet under 40 för den rätta "Raw"-känslan)
     const tracks = searchData.tracks.items
       .filter(t => t.popularity < 40)
       .map(t => ({
