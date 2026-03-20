@@ -2,8 +2,12 @@ export default async function handler(req, res) {
   const client_id = process.env.SPOTIFY_CLIENT_ID;
   const client_secret = process.env.SPOTIFY_CLIENT_SECRET;
 
+  if (!client_id || !client_secret) {
+    return res.status(500).json({ error: "MISSING_KEYS" });
+  }
+
   try {
-    // 1. Hämta Access Token
+    // 1. Hämta Access Token (Standard Auth)
     const authString = Buffer.from(client_id + ':' + client_secret).toString('base64');
     const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -17,9 +21,9 @@ export default async function handler(req, res) {
     const tokenData = await tokenRes.json();
     const token = tokenData.access_token;
 
-    // 2. Sökning - Helt statisk URL för att eliminera "Invalid limit"
-    // Vi söker efter 'tag:new' för att hitta färsk musik
-    const searchUrl = 'https://api.spotify.com/v1/search?q=tag:new&type=track&limit=50&offset=10';
+    // 2. Sökning - HELT STATISK URL (Inga variabler, inga backticks)
+    // Vi söker efter bokstaven 'a' i genren 'indie' för att garantera 50 träffar
+    const searchUrl = 'https://api.spotify.com/v1/search?q=genre:indie%20a&type=track&limit=50&offset=10';
     
     const searchRes = await fetch(searchUrl, {
       headers: { 'Authorization': 'Bearer ' + token }
